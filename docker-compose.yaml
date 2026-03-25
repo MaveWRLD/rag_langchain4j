@@ -1,0 +1,15 @@
+services:
+  pgvector_v1:
+    container_name: rag_langChain_v1
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5438:5432"
+    volumes:
+      - pgdata_rag_langChain_v1:/var/lib/postgresql/data
+
+volumes:
+  pgdata_rag_langChain_v1:

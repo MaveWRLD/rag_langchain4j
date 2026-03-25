@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: rag_langchain4j
+
+  config:
+    import: optional:file:.env[.properties]
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  datasource:
+    dataBaseName: ${POSTGRES_DB}
+    url: jdbc:postgresql://localhost:5438/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+
+  pgvector:
+    table: ${PGVECTOR_TABLE:embeddings}
+    dimension: ${PGVECTOR_DIMENSION:1536}
+
+  ai:
+    openai:
+        api-key: ${OPENAI_API_KEY}
+        base-url: https://api.openai.com/v1
+        timeout: 30s
+    model:
+      chat: gpt-3.5-turbo
+
+app:
+  upload:
+    temp-dir: /tmp/rag_upload
+  allowed-content-types:
+    - application/pdf
+    - text/plain
+    - application/msword
+    - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    - image/jpeg
+    - image/png
+
+server:
+  max-http-request-size: 50MB

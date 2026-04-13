@@ -3,10 +3,11 @@ package org.mave.rag_langchain4j.config;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiChatModelName;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,14 @@ public class LangChain4jConfig {
                 .useIndex(true)
                 .indexListSize(100)
                 .createTable(true)
+                .build();
+    }
+
+    @Bean
+    public StreamingChatModel streamingChatModel(){
+        return OpenAiStreamingChatModel.builder()
+                .apiKey(openAiApiKey)
+                .modelName(GPT_4_O_MINI)
                 .build();
     }
 

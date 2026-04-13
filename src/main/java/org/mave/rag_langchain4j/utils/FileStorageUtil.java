@@ -21,18 +21,19 @@ public class FileStorageUtil {
     private void initializeDirectory() {
         try {
             Files.createDirectories(tempFileDirectory);
+            System.out.println("Temp directory created: " + tempFileDirectory);
         } catch (IOException e) {
             throw new RuntimeException("Failed to create temp directory: " + tempFileDirectory, e);
         }
     }
 
-    public String saveToTempFile(MultipartFile file) throws IOException {
+    public Path saveToTempFile(MultipartFile file) throws IOException {
         String fileName = generateUniqueFileName(file.getOriginalFilename());
         Path filePath = tempFileDirectory.resolve(fileName);
 
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-        return filePath.toString();
+        return filePath;
     }
 
     private String generateUniqueFileName(String originalFilename) {

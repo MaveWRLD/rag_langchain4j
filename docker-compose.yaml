@@ -11,5 +11,21 @@ services:
     volumes:
       - pgdata_rag_langChain_v1:/var/lib/postgresql/data
 
+  grafana-lgtm:
+    image: 'grafana/otel-lgtm:latest'
+    container_name: rag_langChain_grafana-lgtm
+    ports:
+      - "3000:3000"
+      - "4317:4317"
+      - "4318:4318"
+    restart: unless-stopped
+
+  docling:
+    image: ghcr.io/docling-project/docling-serve:latest
+    container_name: rag_langChain_docling
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+
 volumes:
   pgdata_rag_langChain_v1:

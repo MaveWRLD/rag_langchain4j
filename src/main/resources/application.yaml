@@ -8,8 +8,8 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 50MB
-      max-request-size: 50MB
+      max-file-size: ${MAX_FILE_SIZE}
+      max-request-size: ${MAX_REQUEST_SIZE}
 
   datasource:
     dataBaseName: ${POSTGRES_DB}
@@ -26,12 +26,11 @@ spring:
         api-key: ${OPENAI_API_KEY}
         base-url: https://api.openai.com/v1
         timeout: 30s
-    model:
-      chat: gpt-3.5-turbo
+
 
 app:
   upload:
-    temp-dir: /tmp/rag_upload
+    temp-dir: ${TEMP_DIR}
   allowed-content-types:
     - application/pdf
     - text/plain
@@ -41,4 +40,33 @@ app:
     - image/png
 
 server:
-  max-http-request-size: 50MB
+  max-http-request-size: MAX_HTTP_REQUEST_SIZE
+
+docling:
+  based-url: ${DOCLING_BASE_URL}
+
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+
+logging:
+  level:
+    .dev.langchain4j: DEBUG

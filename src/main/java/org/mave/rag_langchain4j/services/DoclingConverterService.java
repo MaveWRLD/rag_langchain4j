@@ -1,11 +1,11 @@
-package org.mave.rag_langchain4j.services.impl;
+package org.mave.rag_langchain4j.services;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -15,6 +15,7 @@ import java.util.stream.Stream;
 
 
 import ai.docling.serve.api.DoclingServeApi;
+import ai.docling.serve.api.chunk.request.HierarchicalChunkDocumentRequest;
 import ai.docling.serve.api.chunk.request.HybridChunkDocumentRequest;
 import ai.docling.serve.api.chunk.response.Chunk;
 import ai.docling.serve.api.chunk.response.ChunkDocumentResponse;
@@ -45,45 +46,42 @@ public class DoclingConverterService {
     private final DoclingServeApi docling;
 
 
-    public Stream<TextSegment> extract(URI uri, String originalFileName, String docId, SseEmitter emitter) {
+    public CompletionStage<List<TextSegment>> extract(
+            URI uri,
+            String originalFileName,
+            String docId,
+            SseEmitter emitter
+    ) {
 
-        try {
-            ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor();
-            AtomicInteger seconds = new AtomicInteger(0);
+        ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor();
+        AtomicInteger seconds = new AtomicInteger(0);
 
-            heartbeat.scheduleAtFixedRate(() -> {
-                seconds.addAndGet(5);
-                sendUpdate(emitter, "step","⏳ Docling is processing your document... (" + seconds.get() + "s)");
-            }, 5, 5, TimeUnit.SECONDS);
+        heartbeat.scheduleAtFixedRate(() -> {
+            seconds.addAndGet(5);
+            sendUpdate(emitter, "⏳ Docling is processing your document... (" + seconds.get() + "s)");
+        }, 5, 5, TimeUnit.SECONDS);
 
-            try {
-                var chunkResponse = chunkFile(Paths.get(uri));
+        return chunkFile(Paths.get(uri))
+                .thenApply(response -> response.getChunks().stream()
+                        .map(Chunk::getText)
+                        .map(chunk -> TextSegment.from(
+                                chunk,
+                                Metadata.from(Map.of(
+                                        "uri", uri.toString(),
+                                        "filename", originalFileName,
+                                        "docId", docId
+                                ))
+                        ))
+                        .toList()
+                )
+                .whenComplete((result, ex) -> {
+                    sendUpdate(emitter, "✂️ Chunking complete");
+                    heartbeat.shutdown();
 
-                return chunkResponse.thenApply(r ->
-                                r.getChunks()
-                                        .stream()
-                                        .map(Chunk::getText)
-                                        .map(chunk -> TextSegment.from(
-                                                chunk,
-                                                Metadata.from(Map.of(
-                                                        "uri", uri.toString(),
-                                                        "filename", originalFileName,
-                                                        "docId", docId
-                                                ))
-                                                )
-                                        )
-                        )
-                        .toCompletableFuture().get();
-
-            } finally {
-                sendUpdate(emitter, "step", "✂️ Chunking complete ");
-                sendUpdate(emitter, "step", "Embedding Segments ");
-
-                heartbeat.shutdown();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+                    if (ex != null) {
+                        sendUpdate(emitter, "❌ Error during chunking");
+                    }
+                });
     }
 
     private boolean isLocalFile(URI uri) {
@@ -91,17 +89,15 @@ public class DoclingConverterService {
     }
 
     private CompletionStage<ChunkDocumentResponse> chunkFile(Path file) {
-        log.debug("Chunking from file: {}", file);
 
-        var chunkRequest = HybridChunkDocumentRequest.builder()
+        var chunkRequest = HierarchicalChunkDocumentRequest.builder()
                 .options(DEFAULT_OPTIONS)
                 .build();
 
-        return docling.chunkFilesWithHybridChunkerAsync(chunkRequest, file);
+        return docling.chunkFilesWithHierarchicalChunkerAsync(chunkRequest, file);
     }
 
     private CompletionStage<ChunkDocumentResponse> chunkUri(URI uri) {
-        log.debug("Chunking from URI: {}", uri);
 
         var chunkRequest = HybridChunkDocumentRequest.builder()
                 .source(HttpSource.builder()
@@ -113,12 +109,11 @@ public class DoclingConverterService {
         return docling.chunkSourceWithHybridChunkerAsync(chunkRequest);
     }
 
-    private void sendUpdate(SseEmitter emitter, String eventType, String message) {
+    private void sendUpdate(SseEmitter emitter, String message) {
         try {
             emitter.send(SseEmitter.event()
-                    .name(eventType)
+                    .name("step")
                     .data(message));
-            log.info("SSE update sent: {}", message);
         } catch (IOException e) {
             log.error("Failed to send SSE update", e);
         }

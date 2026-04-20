@@ -2,6 +2,8 @@ package org.mave.rag_langchain4j.config;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import ai.docling.serve.api.DoclingServeApi;
 import ai.docling.serve.api.convert.request.ConvertDocumentRequest;
@@ -25,23 +27,12 @@ public class DoclingServeConfig {
                 .baseUrl(baseUrl)
                 .connectTimeout(Duration.ofSeconds(10))
                 .readTimeout(Duration.ofMinutes(5))
-                .logRequests()
-                .logResponses()
-                .prettyPrint()
                 .build();
     }
 
-
     @Bean
-    public ConvertDocumentRequest convertDocumentRequest(){
-        return ConvertDocumentRequest.builder()
-                .source(HttpSource.builder().url(URI.create("https://arxiv.org/pdf/2408.09869"))
-                        .build())
-                .options(ConvertDocumentOptions.builder()
-                        .toFormat(OutputFormat.MARKDOWN)
-                        .includeImages(true)
-                        .build())
-                .target(InBodyTarget.builder().build())
-                .build();
+    public ExecutorService embeddingExecutor(
+            @Value("${embedding.thread-pool-size:8}") int poolSize) {
+        return Executors.newFixedThreadPool(poolSize);
     }
 }

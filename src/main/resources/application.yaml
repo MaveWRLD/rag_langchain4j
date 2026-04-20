@@ -57,6 +57,7 @@ management:
         url: http://localhost:4318/v1/metrics
 
   opentelemetry:
+
     tracing:
       export:
         otlp:
@@ -67,6 +68,6 @@ management:
         otlp:
           endpoint: http://localhost:4318/v1/logs
 
-logging:
-  level:
-    .dev.langchain4j: DEBUG
+#logging:
+#  level:
+#    .dev.langchain4j: DEBUG

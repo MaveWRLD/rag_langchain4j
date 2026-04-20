@@ -21,7 +21,6 @@ public class FileStorageUtil {
     private void initializeDirectory() {
         try {
             Files.createDirectories(tempFileDirectory);
-            System.out.println("Temp directory created: " + tempFileDirectory);
         } catch (IOException e) {
             throw new RuntimeException("Failed to create temp directory: " + tempFileDirectory, e);
         }
